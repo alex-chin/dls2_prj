@@ -19,8 +19,9 @@ class Tools:
         headers = {"Accept": "application/json",
                    "Content-Type": "application/json",
                    "Authorization": f"Bearer {self.garant_token}", }
-        payload = {"text": query_text, "count": 10, # сколько документов вернуть
-                   "kind": [],  # можно уточнить типы документов
+        payload = {"text": query_text, "count": 10,
+                   # сколько документов вернуть
+                   "kind": ['003'],  # можно уточнить типы документов
                    "sort": 0,  # по релевантности
                    "sortOrder": 0,  # по убыванию
                    }
