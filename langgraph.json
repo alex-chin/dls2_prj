@@ -2,7 +2,7 @@
   "$schema": "https://langgra.ph/schema.json",
   "dependencies": ["."],
   "graphs": {
-    "pravo_mentor": "./PravoMentor.py:graph"
+    "pravo_app": "pravo_app.graph:graph"
   },
   "env": ".env"
 }
