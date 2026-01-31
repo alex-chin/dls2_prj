@@ -1,7 +1,7 @@
 import os
 
-from .graph import graph
-from .run import run_graph
+from pravo_app.graph import graph
+from pravo_app.run import run_graph
 
 
 def main() -> None:

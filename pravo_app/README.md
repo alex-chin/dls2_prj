@@ -13,11 +13,10 @@
 - `decisions.py` — логика переходов.
 - `graph.py` — сборка и экспорт `graph`.
 - `run.py` — режимы запуска (debug/simple).
-- `main.py` — CLI entrypoint.
 
 ## Запуск
-CLI:
-- `python -m pravo_app.main`
+CLI (из корня проекта):
+- `python main.py`
 
 Переменные окружения:
 - `PRAVO_QUERY` — стартовый запрос.

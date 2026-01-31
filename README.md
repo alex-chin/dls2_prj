@@ -1,2 +1,5 @@
 # dls2_prj
 LLM-агент, который оценивает релевантность организаций на Яндекс.Картах широким запросам 
+
+pip install -U "langgraph-cli[inmem]"
+langgraph dev
