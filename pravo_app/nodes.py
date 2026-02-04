@@ -12,7 +12,7 @@ from .prompts import (
     final_answer_prompt,
     query_concat_prompt,
     query_rewrite_prompt,
-    rag_prompt,
+    rag_prompt, rag_prompt_only_link,
     reflection_prompt,
 )
 from .search import call_court_api, call_npa_api
@@ -162,7 +162,7 @@ def answer_node(state: MyState) -> MyState:
     if not docs:
         answer = "Извините, по вашему запросу не удалось найти подходящие документы."
     else:
-        prompt = rag_prompt.format(query=query, docs=format_docs(docs))
+        prompt = rag_prompt_only_link.format(query=query, docs=format_docs(docs))
         answer = ask_giga(prompt, GIGACHAT_MODEL)
 
     answer_data = {
