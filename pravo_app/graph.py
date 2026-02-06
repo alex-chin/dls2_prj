@@ -3,6 +3,7 @@ from langgraph.graph import END, START, StateGraph
 from .decisions import check_need_human, check_need_re_search, check_search_type
 from .nodes import (
     answer_node,
+    batch_clarify_node,
     clarify_node,
     classify_node,
     final_answer_node,
@@ -22,6 +23,7 @@ def build_graph() -> StateGraph:
     workflow.add_node("старт", setup_node)
     workflow.add_node("уточнение", clarify_node)
     workflow.add_node("вопрос пользователю", human_clarify_node)
+    workflow.add_node("уточнение в batch", batch_clarify_node)
     workflow.add_node("сбор запроса", query_concat_node)
     workflow.add_node("переформулировка", rewrite_node)
     workflow.add_node("классификация", classify_node)
@@ -35,6 +37,7 @@ def build_graph() -> StateGraph:
     workflow.add_edge("старт", "уточнение")
     workflow.add_conditional_edges("уточнение", check_need_human)
     workflow.add_edge("вопрос пользователю", "сбор запроса")
+    workflow.add_edge("уточнение в batch", "сбор запроса")
     workflow.add_edge("сбор запроса", "переформулировка")
     workflow.add_edge("переформулировка", "классификация")
     workflow.add_conditional_edges("классификация", check_search_type)

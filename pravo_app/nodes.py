@@ -9,6 +9,7 @@ from .llm import ask_giga
 from .prompts import (
     classification_prompt,
     clarification_prompt,
+    clarification_prompt_batch,
     final_answer_prompt,
     query_concat_prompt,
     query_rewrite_prompt,
@@ -28,6 +29,7 @@ def setup_node(state: MyState) -> MyState:
     state_update["search_query"] = state["query"]
     state_update["messages"] = [("user", state["query"])]
     state_update["clarification"] = None
+    state_update["clarification_answer"] = None
     state_update["need_clarify_question"] = None
     state_update["category"] = None
     state_update["docs"] = []
@@ -37,6 +39,7 @@ def setup_node(state: MyState) -> MyState:
     state_update["re_search_cnt"] = 0
     state_update["clarification_cnt"] = 0
     state_update["verbose"] = state.get("verbose", False)
+    state_update["batch_mode"] = state.get("batch_mode", os.getenv("PRAVO_BATCH_MODE", "0") == "1")
     return state_update
 
 
@@ -57,6 +60,24 @@ def clarify_node(state: MyState) -> MyState:
     return state_update
 
 
+def batch_clarify_node(state: MyState) -> MyState:
+    query = state["search_query"]
+    prompt = clarification_prompt_batch.format(query=query)
+    gen = ask_giga(prompt, GIGACHAT_MODEL)
+
+    message = ("tool_batch_clarify", gen)
+
+    state_update = dict()
+    state_update["messages"] = [message]
+    state_update["clarification_answer"] = gen
+    state_update["need_clarify_question"] = False
+
+    if state["verbose"]:
+        print("batch_clarify_node:", gen)
+
+    return state_update
+
+
 def human_clarify_node(state: MyState) -> MyState:
     use_input = os.getenv("PRAVO_USE_INPUT", "0") == "1"
     value = ask_human(state["clarification"]) if use_input else interrupt(state["clarification"])
@@ -65,6 +86,7 @@ def human_clarify_node(state: MyState) -> MyState:
 
     state_update = dict()
     state_update["messages"] = [message]
+    state_update["clarification_answer"] = value
 
     if state["verbose"]:
         print("human_clarify_node:", value)

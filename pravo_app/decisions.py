@@ -3,14 +3,15 @@ from typing import Literal
 from .state import MyState
 
 
-def check_need_human(state: MyState) -> Literal["вопрос пользователю", "переформулировка"]:
+def check_need_human(state: MyState) -> Literal["вопрос пользователю", "уточнение в batch", "переформулировка"]:
     clarification_cnt = state["clarification_cnt"]
     need_clarify_question = state["need_clarify_question"]
+    batch_mode = state.get("batch_mode")
 
     if clarification_cnt > 1:
         return "переформулировка"
     if need_clarify_question:
-        return "вопрос пользователю"
+        return "уточнение в batch" if batch_mode else "вопрос пользователю"
     return "переформулировка"
 
 

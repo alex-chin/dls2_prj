@@ -9,6 +9,7 @@ class MyState(TypedDict):
     search_query: Optional[str]
     messages: Annotated[List[Tuple[str, str]], add]
     clarification: Optional[str]
+    clarification_answer: Optional[str]
     need_clarify_question: Optional[bool]
     category: Optional[str]
     docs: Annotated[List[Dict], add]
@@ -18,3 +19,4 @@ class MyState(TypedDict):
     re_search_cnt: Optional[int]
     clarification_cnt: Optional[int]
     verbose: Optional[bool]
+    batch_mode: Optional[bool]
