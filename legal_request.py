@@ -1,3 +1,6 @@
+import os
+from pravo_app.graph import graph
+
 CATEGORY_CATALOG = {
     "кат1": {
         "кратко": "Коммунальные услуги",
@@ -44,8 +47,11 @@ REQUEST_LIST = []
 
 def save_requests_json(path: str = "legal_requests.json") -> None:
     """Сохранить REQUEST_LIST в JSON."""
+    data = []
+    for idx, item in enumerate(REQUEST_LIST, start=1):
+        data.append({"порядковый_номер": idx, **item})
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(REQUEST_LIST, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def load_requests_json(path: str = "legal_requests.json") -> list:
@@ -76,7 +82,78 @@ def load_requests_from_md(path: str = "Генерация запросов к а
     return result
 
 
+def process_requests_batch(
+    input_path: str = "legal_requests.json",
+    output_path: str = "legal_process.json",
+    limit: int | None = None,
+    start_index: int = 1,
+) -> list:
+    """Пакетная обработка запросов и сохранение результатов в JSON."""
+
+    requests = load_requests_json(input_path)
+    if start_index < 1:
+        raise ValueError("start_index must be >= 1")
+    start_pos = start_index - 1
+    if limit is not None:
+        requests = requests[start_pos : start_pos + limit]
+    else:
+        requests = requests[start_pos:]
+    results = []
+
+    if requests:
+        start_no = requests[0].get("порядковый_номер", start_index)
+        end_no = requests[-1].get("порядковый_номер", start_index + len(requests) - 1)
+        base, ext = os.path.splitext(output_path)
+        if not ext:
+            ext = ".json"
+        output_path = f"{base}_{start_no}-{end_no}{ext}"
+
+    for idx, item in enumerate(requests, start=1):
+        query_preview = item["запрос"][:20]
+        request_no = item.get("порядковый_номер", idx)
+        print(f"[{request_no}] {item['категория']} | {item['тема']} | {query_preview}")
+        state = {
+            "query": item["запрос"],
+            "batch_mode": True,
+            "verbose": False,
+        }
+        final_state = graph.invoke(state)
+
+        results.append(
+            {
+                "порядковый_номер": item.get("порядковый_номер", request_no),
+                "категория": item["категория"],
+                "тема": item["тема"],
+                "запрос": item["запрос"],
+                "ответ": final_state.get("final_answer"),
+                "сгенерированный вопрос": final_state.get("clarification"),
+                "сгенерированный ответ": final_state.get("clarification_answer"),
+            }
+        )
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+
+    return results
+
+
 if __name__ == "__main__":
-    load_requests_from_md()
-    save_requests_json()
-    print(f"Загружено {len(REQUEST_LIST)} запросов, сохранено в legal_requests.json")
+    MD_INPUT_PATH = "Генерация запросов к агенту.md"
+    JSON_INPUT_PATH = "legal_requests.json"
+    JSON_OUTPUT_PATH = "legal_process.json"
+    BATCH_LIMIT = 10
+    START_INDEX = 14
+
+    # load_requests_from_md(MD_INPUT_PATH)
+    # save_requests_json(JSON_INPUT_PATH)
+
+    REQUEST_LIST=load_requests_json(JSON_INPUT_PATH)
+    print(f"Загружено {len(REQUEST_LIST)} запросов, сохранено в {JSON_INPUT_PATH}")
+
+    results = process_requests_batch(
+        JSON_INPUT_PATH,
+        JSON_OUTPUT_PATH,
+        limit=BATCH_LIMIT,
+        start_index=START_INDEX,
+    )
+    print(f"Обработано {len(results)} запросов, сохранено в {JSON_OUTPUT_PATH}")
