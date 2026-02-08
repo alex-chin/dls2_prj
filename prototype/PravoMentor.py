@@ -400,7 +400,7 @@ def search_court_node(state: MyState) -> MyState:
 def answer_node(state: MyState) -> MyState:
     query = state["search_query"]
     # Проверка на существование docs
-    docs = state.get("docs", [])
+    docs = state.get("../docs", [])
     if not docs:
         # Обработка случая, если документы не найдены
         answer = "Извините, по вашему запросу не удалось найти подходящие документы."
