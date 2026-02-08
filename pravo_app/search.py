@@ -1,3 +1,9 @@
+"""
+Поиск правовой информации во внешних источниках.
+
+Провайдеры: DuckDuckGo (DDGS) + trafilatura для извлечения текста,
+Garant API для НПА. call_npa_api / call_court_api — точки входа для узлов графа.
+"""
 import os
 from typing import Any, Dict, List, Protocol
 
@@ -7,11 +13,15 @@ import trafilatura
 
 
 class SearchProvider(Protocol):
+    """Протокол провайдера поиска: метод search возвращает список документов {title, href, doc_text}."""
+
     def search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
         ...
 
 
 class DdgsSearchProvider:
+    """Поиск через DuckDuckGo + извлечение текста страниц через trafilatura."""
+
     def search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
         results = DDGS().text(query, max_results=max_results)
         for r in results:
@@ -28,8 +38,10 @@ class DdgsSearchProvider:
 
 
 class GarantSearchProvider:
+    """Поиск по НПА через API Garant.ru. Судебная практика не поддерживается — fallback на DDGS."""
+
     def __init__(self, token: str | None) -> None:
-        self.token = token
+        self.token = token  # GARANT_API_KEY из окружения
 
     def search(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
         if not self.token:
@@ -65,6 +77,7 @@ class GarantSearchProvider:
 
 
 def get_search_provider(name: str | None) -> SearchProvider:
+    """Возвращает провайдер по имени: 'garant' или по умолчанию DdgsSearchProvider."""
     if name == "garant":
         token = os.getenv("GARANT_API_KEY")
         return GarantSearchProvider(token)
@@ -72,6 +85,7 @@ def get_search_provider(name: str | None) -> SearchProvider:
 
 
 def call_npa_api(query: str) -> List[Dict[str, Any]]:
+    """Поиск НПА: при DDGS добавляет site:consultant.ru/."""
     provider = get_search_provider(os.getenv("PRAVO_SEARCH_PROVIDER"))
     if isinstance(provider, DdgsSearchProvider):
         query = query + " site:consultant.ru/"
@@ -79,6 +93,7 @@ def call_npa_api(query: str) -> List[Dict[str, Any]]:
 
 
 def call_court_api(query: str) -> List[Dict[str, Any]]:
+    """Поиск судебной практики: site:reputation.su. Garant → fallback на DDGS."""
     provider = get_search_provider(os.getenv("PRAVO_SEARCH_PROVIDER"))
     if isinstance(provider, DdgsSearchProvider):
         query = query + " site:reputation.su"

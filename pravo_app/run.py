@@ -1,10 +1,18 @@
+"""
+Точка входа для запуска графа юридического агента.
+
+Потоковая обработка graph.stream() с выводом шагов и финального ответа.
+Режимы: debug — подробный лог, simple — краткие сообщения о этапах.
+"""
 from typing import Any, Dict
 
 
 def run_graph(graph, state: Dict[str, Any], mode: str = "debug") -> None:
+    """Потоково выполняет граф, выводит промежуточные и финальный ответ. mode: 'debug' | 'simple'."""
     if mode not in {"debug", "simple"}:
         raise ValueError("mode must be 'debug' or 'simple'")
 
+    # Соответствие узлов человекочитаемым этапам (для режима simple)
     stage_by_node = {
         "поиск нпа": "запрос в web",
         "поиск судебки": "запрос в web",
@@ -15,6 +23,7 @@ def run_graph(graph, state: Dict[str, Any], mode: str = "debug") -> None:
         "самопроверка": "оцениваю",
     }
 
+    # Итоговый ответ, извлекаемый из узла «финальный ответ»
     final_answer = None
 
     for step_result in graph.stream(state, stream_mode="updates"):

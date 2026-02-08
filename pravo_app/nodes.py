@@ -1,3 +1,9 @@
+"""
+Узлы графа LangGraph (обработчики состояний).
+
+Каждая функция принимает state, возвращает state_update (словарь изменений).
+Обновления мержатся в общее состояние согласно редукторам TypedDict.
+"""
 import os
 from typing import Any, Dict, List, Tuple
 
@@ -21,10 +27,12 @@ from .state import MyState
 
 
 def ask_human(query: str) -> str:
+    """Запрашивает ввод пользователя. В production заменяется на interrupt()."""
     return input(query)
 
 
 def setup_node(state: MyState) -> MyState:
+    """Инициализирует состояние: query → search_query, messages, обнуляет счётчики и флаги."""
     state_update = dict()
     state_update["search_query"] = state["query"]
     state_update["messages"] = [("user", state["query"])]
@@ -44,6 +52,7 @@ def setup_node(state: MyState) -> MyState:
 
 
 def clarify_node(state: MyState) -> MyState:
+    """Проверяет достаточность контекста: LLM решает, нужен ли уточняющий вопрос или «ок»."""
     query = state["search_query"]
     prompt = clarification_prompt.format(query=query)
     gen = ask_giga(prompt, GIGACHAT_MODEL)
@@ -61,6 +70,7 @@ def clarify_node(state: MyState) -> MyState:
 
 
 def batch_clarify_node(state: MyState) -> MyState:
+    """Режим без диалога: LLM отвечает по существу с допущениями при недостатке данных."""
     query = state["search_query"]
     prompt = clarification_prompt_batch.format(query=query)
     gen = ask_giga(prompt, GIGACHAT_MODEL)
@@ -79,6 +89,7 @@ def batch_clarify_node(state: MyState) -> MyState:
 
 
 def human_clarify_node(state: MyState) -> MyState:
+    """Получает ответ пользователя на уточнение: input() или interrupt() для LangGraph."""
     use_input = os.getenv("PRAVO_USE_INPUT", "0") == "1"
     value = ask_human(state["clarification"]) if use_input else interrupt(state["clarification"])
 
@@ -95,6 +106,7 @@ def human_clarify_node(state: MyState) -> MyState:
 
 
 def query_concat_node(state: MyState) -> MyState:
+    """Объединяет диалог в один поисковый запрос с учётом всех реплик пользователя."""
     dialog = format_dialog(state["messages"])
     prompt = query_concat_prompt.format(dialog=dialog)
     gen = ask_giga(prompt, GIGACHAT_MODEL)
@@ -112,6 +124,7 @@ def query_concat_node(state: MyState) -> MyState:
 
 
 def rewrite_node(state: MyState) -> MyState:
+    """Переформулирует запрос в краткую юридическую поисковую фразу."""
     query = state["search_query"]
     prompt = query_rewrite_prompt.format(query=query)
     rewritten = ask_giga(prompt, GIGACHAT_MODEL)
@@ -129,6 +142,7 @@ def rewrite_node(state: MyState) -> MyState:
 
 
 def classify_node(state: MyState) -> MyState:
+    """Классифицирует запрос: «НПА» или «Судебное» для выбора типа поиска."""
     query = state["search_query"]
     prompt = classification_prompt.format(query=query)
     category = ask_giga(prompt, GIGACHAT_MODEL)
@@ -147,6 +161,7 @@ def classify_node(state: MyState) -> MyState:
 
 
 def search_npa_node(state: MyState) -> MyState:
+    """Поиск по нормативно-правовым актам (КонсультантПлюс/DDGS или Garant API)."""
     results = call_npa_api(state["search_query"])
 
     message_text = format_links(results)
@@ -163,6 +178,7 @@ def search_npa_node(state: MyState) -> MyState:
 
 
 def search_court_node(state: MyState) -> MyState:
+    """Поиск судебной практики (reputation.su или web-поиск при Garant)."""
     results = call_court_api(state["search_query"])
 
     message_text = format_links(results)
@@ -179,6 +195,7 @@ def search_court_node(state: MyState) -> MyState:
 
 
 def answer_node(state: MyState) -> MyState:
+    """Генерирует черновой RAG-ответ по документам или сообщение об отсутствии результатов."""
     query = state["search_query"]
     docs = state.get("docs", [])
     if not docs:
@@ -205,6 +222,7 @@ def answer_node(state: MyState) -> MyState:
 
 
 def reflect_node(state: MyState) -> MyState:
+    """Самопроверка: LLM оценивает полноту ответа и решает — «ок» или новый поисковый запрос."""
     answer = state["answers"][-1]
     prompt = reflection_prompt.format(query=state["search_query"], response=answer["doc_text"])
     gen = ask_giga(prompt, GIGACHAT_MODEL)
@@ -226,6 +244,7 @@ def reflect_node(state: MyState) -> MyState:
 
 
 def final_answer_node(state: MyState) -> MyState:
+    """Формирует итоговый ответ: один черновик или синтез нескольких через final_answer_prompt."""
     query = state["query"]
     docs = state["answers"]
     if not docs:

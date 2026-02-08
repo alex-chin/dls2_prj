@@ -1,3 +1,9 @@
+"""
+Граф состояний юридического агента (LangGraph).
+
+Определяет workflow: узлы, рёбра и условные переходы. Реализует Recursive RAG:
+уточнение → поиск → ответ → самопроверка → повторный поиск (при необходимости).
+"""
 from langgraph.graph import END, START, StateGraph
 
 from .decisions import check_need_human, check_need_re_search, check_search_type
@@ -19,6 +25,7 @@ from .state import MyState
 
 
 def build_graph() -> StateGraph:
+    """Собирает и возвращает граф состояний. После compile() — исполняемый граф."""
     workflow = StateGraph(MyState)
     workflow.add_node("старт", setup_node)
     workflow.add_node("уточнение", clarify_node)
@@ -50,4 +57,5 @@ def build_graph() -> StateGraph:
     return workflow
 
 
+# Скомпилированный граф для обработки запросов
 graph = build_graph().compile()
