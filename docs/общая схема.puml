@@ -1,0 +1,36 @@
+@startuml
+title Deployment Diagram — LLM Legal Agent
+
+node "User Device" {
+    component "Web Browser / UI" #aliceblue;line.dotted
+}
+
+node "Application Server" {
+
+    node "LLM Agent Service" {
+        component "Agent Orchestrator\n(LangGraph)"
+        component "Prompt Manager"
+        component "Recursive RAG Module"
+    }
+
+    node "LLM Provider" {
+        component "LLM API"
+    }
+
+    database "Vector Store\n(Embeddings)"
+
+    database "Vector Store\n(Embeddings)" #aliceblue;line:blue;line.dotted
+
+}
+
+node "External Legal System" {
+    component "Garant API"
+}
+
+"User Device" --> "LLM Agent Service" : HTTPS Request
+"LLM Agent Service" --> "LLM API" : Prompt / Completion
+"LLM Agent Service" --> "Vector Store\n(Embeddings)" : Retrieval
+"LLM Agent Service" --> "Garant API" : Legal Search Query
+"Garant API" --> "LLM Agent Service" : Legal Documents
+
+@enduml
